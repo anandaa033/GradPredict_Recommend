@@ -8,7 +8,7 @@ model = joblib.load('./Model/Education_recommen_logis.pkl')
 model2 = joblib.load('./Model/Education_recommen_RandomForest2.pkl')
 
 # Load the dataset used in train3.py
-data = pd.read_csv('./DataSet/Resampled_Data.csv')
+data = pd.read_csv('./dataSet/Resampled_Data.csv')
 
 scaler = joblib.load('Model/scaler.pkl')  # Load the scaler used during model training
 
