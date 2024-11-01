@@ -1,5 +1,0 @@
-joblib
-pandas
-streamlit
-numpy
-sklearn
