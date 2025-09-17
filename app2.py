@@ -122,21 +122,13 @@ if st.session_state.page == 1:
 elif st.session_state.page == 2:
     st.header('กรุณากรอกระดับความพร้อมในการเรียน')
 
-    # CSS for horizontal radio buttons
-    st.markdown("""
-        <style>
-        .stRadio div {
-            display: flex;
-            flex-direction: row;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    # Standardized mapping for radio button options
+    # ตัวเลือกและ mapping
     features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
+    inv_map = {v: k for k, v in features_mapping.items()}
 
     st.header('ปัจจัยส่งผลต่อการสำเร็จการศึกษาของนักศึกษาระดับบัณฑิตศึกษา (โปรดเลือกระดับความสำคัญที่ตรงกับความคิดเห็นของท่านมากที่สุดเพียงระดับเดียว)')
-    # Learning readiness factors
+
+    # รายการคำถาม (เหมือนเดิม)
     learning_factors = [
         ('ความรู้ความเข้าใจแผนการเรียนที่กำหนดไว้ในหลักสูตร', 'knowledge_course'),
         ('ความรู้และความเข้าใจในการเรียนในแต่ละรายวิชา', 'knowledge_subject'),
@@ -178,20 +170,56 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-    st.session_state.learning_factors = learning_factors  # Save to session_state
-    all_filled = all(st.session_state.get(key) for _, key in learning_factors)
+    # เก็บไว้ใช้ใน page 3
+    st.session_state.learning_factors = learning_factors
 
-    for question, key in learning_factors:
-        answer = st.radio(question, ['น้อย', 'ปานกลาง', 'มาก'])
-        st.session_state[key] = features_mapping[answer]
+    # เตรียม DataFrame สำหรับ data_editor พร้อมเติมค่าที่ตอบไว้ก่อนหน้า (ถ้ามี)
+    df = pd.DataFrame({
+        'ลำดับ': list(range(1, len(learning_factors) + 1)),
+        'คำถาม': [q for q, _ in learning_factors],
+        'คำตอบ': [inv_map.get(st.session_state.get(key)) for _, key in learning_factors]
+    })
 
-    if all_filled and st.button('ถัดไป'):
-        next_page()
-        
-    elif not all_filled:
-        st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
+    edited = st.data_editor(
+        df,
+        hide_index=True,
+        use_container_width=True,
+        num_rows="fixed",
+        column_config={
+            'คำตอบ': st.column_config.SelectboxColumn(
+                label='คำตอบ',
+                options=['น้อย', 'ปานกลาง', 'มาก'],
+                required=True
+            )
+        }
+    )
 
+    # เพิ่ม CSS เน้นเส้นตาราง (grid) ให้ชัดขึ้น
+    st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] table, 
+        [data-testid="stDataFrame"] thead th, 
+        [data-testid="stDataFrame"] tbody td {
+            border: 1px solid #d9d9d9 !important;
+            border-collapse: collapse !important;
+        }
+        [data-testid="stDataFrame"] thead th {
+            font-weight: 600;
+            background: #fafafa;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
+    all_filled = edited['คำตอบ'].notna().all()
+
+    if st.button('ถัดไป'):
+        if not all_filled:
+            st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
+        else:
+            # บันทึกคำตอบกลับเข้า session_state ตามคีย์เดิม
+            for (question, key), ans in zip(learning_factors, edited['คำตอบ'].tolist()):
+                st.session_state[key] = features_mapping[ans]
+            next_page()
         
  
 
