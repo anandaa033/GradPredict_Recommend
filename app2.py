@@ -122,22 +122,8 @@ if st.session_state.page == 1:
 elif st.session_state.page == 2:
     st.header('กรุณากรอกระดับความพร้อมในการเรียน')
 
-    # Standardized mapping for options
-    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
-    options = list(features_mapping.keys())
-
-    # CSS for horizontal radio buttons
-    st.markdown("""
-        <style>
-        .stRadio div {
-            display: flex;
-            flex-direction: row;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    # Standardized mapping for radio button options
-    # features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
+    options = ['น้อย', 'ปานกลาง', 'มาก']
+    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก':5}
 
     st.header('ปัจจัยส่งผลต่อการสำเร็จการศึกษาของนักศึกษาระดับบัณฑิตศึกษา (โปรดเลือกระดับความสำคัญที่ตรงกับความคิดเห็นของท่านมากที่สุดเพียงระดับเดียว)')
     # Learning readiness factors
@@ -182,30 +168,23 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-    st.session_state.learning_factors = learning_factors
+    responses = {}
+    # สร้างตารางแบบเลือกได้ 1 ตัวต่อแถว
+    st.write("| คำถาม | น้อย | กลาง | มาก |")
+    st.write("|---|---|---|---|")
+    for question, key in learning_factors:
+        cols = st.columns([4,1,1,1])
+        cols[0].write(question)
+        selected = None
+        for i, option in enumerate(options):
+            if cols[i+1].radio("", options=[option], key=f"{key}_{option}"):
+                selected = features_mapping[option]
+        if selected:
+            responses[key] = selected
 
-    # สร้าง DataFrame สำหรับเลือกค่าในตาราง
-    df_init = pd.DataFrame({
-        "คำถาม": [q for q, _ in learning_factors],
-        "คำตอบ": [None]*len(learning_factors)
-    })
+    st.session_state.update(responses)
 
-    edited_df = st.data_editor(
-        df_init,
-        column_config={
-            "คำตอบ": st.column_config.SelectboxColumn("คำตอบ", options=options)
-        },
-        hide_index=True,
-    )
-
-    # เก็บผลลัพธ์ลง session_state
-    for (_, key), value in zip(learning_factors, edited_df["คำตอบ"]):
-        if value:
-            st.session_state[key] = features_mapping[value]
-
-    # ตรวจว่าตอบครบทุกข้อหรือยัง
-    all_filled = all(st.session_state.get(key) for _, key in learning_factors)
-
+    all_filled = all(key in st.session_state for _, key in learning_factors)
     if all_filled and st.button('ถัดไป'):
         next_page()
     elif not all_filled:
