@@ -34,11 +34,11 @@ if st.session_state.page == 1:
     st.markdown("### ข้อมูลผู้ใช้")
     name = st.text_input("ชื่อ - นามสกุล", key="name")
     student_id = st.text_input("รหัสนักศึกษา", key="student_id")
-    st.session_state.major = st.selectbox(
-        "เลือกสาขา",
-        ["IT", "CS", "DSI"],
-        key="major"
-    )
+    st.selectbox(
+    "เลือกสาขา",
+    ["IT", "CS", "DSI"],
+    key="major"
+)
 
     if st.button("ถัดไป"):
         if name and student_id:
