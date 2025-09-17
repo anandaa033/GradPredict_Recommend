@@ -3,11 +3,11 @@ import pandas as pd
 import streamlit as st
 import numpy as np
 
-# โหลดโมเดล
+# -------------------- โหลดโมเดล --------------------
 model = joblib.load('./Model/Education_recommen_logis.pkl')
 model2 = joblib.load('./Model/Education_recommen_RandomForest2.pkl')
 
-# โหลด dataset
+# -------------------- โหลด dataset --------------------
 data = pd.read_csv('./dataSet/Resampled_Data.csv')
 
 # -------------------- Mapping --------------------
@@ -34,11 +34,11 @@ if st.session_state.page == 1:
     st.markdown("### ข้อมูลผู้ใช้")
     name = st.text_input("ชื่อ - นามสกุล", key="name")
     student_id = st.text_input("รหัสนักศึกษา", key="student_id")
-    st.selectbox(
-    "เลือกสาขา",
-    ["IT", "CS", "DSI"],
-    key="major"
-)
+    st.session_state.major = st.selectbox(
+        "เลือกสาขา",
+        ["IT", "CS", "DSI"],
+        key="major"
+    )
 
     if st.button("ถัดไป"):
         if name and student_id:
@@ -85,13 +85,8 @@ elif st.session_state.page == 2:
                     if other != level:
                         st.session_state[f"{key}_{other}"] = False
 
-    # ตรวจว่าตอบครบหรือยัง
-    all_filled = True
-    for _, key in learning_factors:
-        if st.session_state.get(key) is None:
-            all_filled = False
-        else:
-            st.session_state[key] = features_mapping[st.session_state[key]]
+    # ตรวจว่าตอบครบหรือยัง (เก็บเป็น string ไว้ก่อน)
+    all_filled = all(st.session_state.get(key) is not None for _, key in learning_factors)
 
     if all_filled and st.button("ถัดไป"):
         next_page()
@@ -121,18 +116,18 @@ elif st.session_state.page == 3:
 elif st.session_state.page == 4:
     st.header("ผลการแนะนำ")
 
-    # สมมุติใช้โมเดลทำนาย (ตัวอย่าง)
+    # ทำ mapping ที่นี่ก่อน predict
     features = [
-        st.session_state.family_support,
-        st.session_state.financial_situation,
-        st.session_state.knowledge_course,
-        st.session_state.knowledge_subject,
-        st.session_state.problem_solving,
-        st.session_state.teamwork,
-        st.session_state.time_management,
-        st.session_state.health,
-        st.session_state.motivation,
-        st.session_state.environment
+        features_mapping[st.session_state.family_support],
+        features_mapping[st.session_state.financial_situation],
+        features_mapping[st.session_state.knowledge_course],
+        features_mapping[st.session_state.knowledge_subject],
+        features_mapping[st.session_state.problem_solving],
+        features_mapping[st.session_state.teamwork],
+        features_mapping[st.session_state.time_management],
+        features_mapping[st.session_state.health],
+        features_mapping[st.session_state.motivation],
+        features_mapping[st.session_state.environment]
     ]
 
     input_data = np.array(features).reshape(1, -1)
