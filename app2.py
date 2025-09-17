@@ -122,6 +122,10 @@ if st.session_state.page == 1:
 elif st.session_state.page == 2:
     st.header('กรุณากรอกระดับความพร้อมในการเรียน')
 
+    # Standardized mapping for options
+    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
+    options = list(features_mapping.keys())
+
     # CSS for horizontal radio buttons
     st.markdown("""
         <style>
@@ -133,7 +137,7 @@ elif st.session_state.page == 2:
         """, unsafe_allow_html=True)
 
     # Standardized mapping for radio button options
-    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
+    # features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
 
     st.header('ปัจจัยส่งผลต่อการสำเร็จการศึกษาของนักศึกษาระดับบัณฑิตศึกษา (โปรดเลือกระดับความสำคัญที่ตรงกับความคิดเห็นของท่านมากที่สุดเพียงระดับเดียว)')
     # Learning readiness factors
@@ -178,21 +182,34 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-    st.session_state.learning_factors = learning_factors  # Save to session_state
-    all_filled = all(st.session_state.get(key) for _, key in learning_factors)
+st.session_state.learning_factors = learning_factors
 
-    for question, key in learning_factors:
-        answer = st.radio(question, ['น้อย', 'ปานกลาง', 'มาก'])
-        st.session_state[key] = features_mapping[answer]
+    # สร้าง DataFrame สำหรับเลือกค่าในตาราง
+    df_init = pd.DataFrame({
+        "คำถาม": [q for q, _ in learning_factors],
+        "คำตอบ": [None]*len(learning_factors)
+    })
+
+    edited_df = st.data_editor(
+        df_init,
+        column_config={
+            "คำตอบ": st.column_config.SelectboxColumn("คำตอบ", options=options)
+        },
+        hide_index=True,
+    )
+
+    # เก็บผลลัพธ์ลง session_state
+    for (_, key), value in zip(learning_factors, edited_df["คำตอบ"]):
+        if value:
+            st.session_state[key] = features_mapping[value]
+
+    # ตรวจว่าตอบครบทุกข้อหรือยัง
+    all_filled = all(st.session_state.get(key) for _, key in learning_factors)
 
     if all_filled and st.button('ถัดไป'):
         next_page()
-        
     elif not all_filled:
         st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
-
-
-        
  
 
 elif st.session_state.page == 3:
