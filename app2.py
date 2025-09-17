@@ -122,8 +122,18 @@ if st.session_state.page == 1:
 elif st.session_state.page == 2:
     st.header('กรุณากรอกระดับความพร้อมในการเรียน')
 
-    options = ['น้อย', 'ปานกลาง', 'มาก']
-    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก':5}
+    # CSS for horizontal radio buttons
+    st.markdown("""
+        <style>
+        .stRadio div {
+            display: flex;
+            flex-direction: row;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+    # Standardized mapping for radio button options
+    features_mapping = {'น้อย': 3, 'ปานกลาง': 4, 'มาก': 5}
 
     st.header('ปัจจัยส่งผลต่อการสำเร็จการศึกษาของนักศึกษาระดับบัณฑิตศึกษา (โปรดเลือกระดับความสำคัญที่ตรงกับความคิดเห็นของท่านมากที่สุดเพียงระดับเดียว)')
     # Learning readiness factors
@@ -168,34 +178,16 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-# สร้างตารางหัวตาราง
-    cols = st.columns([4, 1, 1, 1])
-    cols[0].write("**คำถาม**")
-    for i, option in enumerate(options):
-        cols[i+1].write(f"**{option}**")
-
-    # สร้างแต่ละแถว
-    for question, key in learning_factors:
-        cols = st.columns([4, 1, 1, 1])
-        cols[0].write(question)
-        for i, option in enumerate(options):
-            checked = st.session_state.get(f"{key}_{option}", False)
-            if cols[i+1].checkbox("", key=f"{key}_{option}", value=checked):
-                # ติ๊กตัวเลือกเดียวในแถว
-                st.session_state[key] = option
-                for other in options:
-                    if other != option:
-                        st.session_state[f"{key}_{other}"] = False
-
-    # ตรวจว่าตอบครบทุกข้อ
+    st.session_state.learning_factors = learning_factors  # Save to session_state
     all_filled = all(st.session_state.get(key) for _, key in learning_factors)
 
+    for question, key in learning_factors:
+        answer = st.radio(question, ['น้อย', 'ปานกลาง', 'มาก'])
+        st.session_state[key] = features_mapping[answer]
+
     if all_filled and st.button('ถัดไป'):
-        # แปลงคำตอบเป็นตัวเลข
-        mapping = {'น้อย':3, 'ปานกลาง':4, 'มาก':5}
-        for _, key in learning_factors:
-            st.session_state[key] = mapping[st.session_state[key]]
         next_page()
+        
     elif not all_filled:
         st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
 
