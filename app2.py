@@ -168,24 +168,33 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-    responses = {}
-    # สร้างตารางแบบเลือกได้ 1 ตัวต่อแถว
-    st.write("| คำถาม | น้อย | กลาง | มาก |")
-    st.write("|---|---|---|---|")
+# สร้างตารางหัวตาราง
+    cols = st.columns([4, 1, 1, 1])
+    cols[0].write("**คำถาม**")
+    for i, option in enumerate(options):
+        cols[i+1].write(f"**{option}**")
+
+    # สร้างแต่ละแถว
     for question, key in learning_factors:
-        cols = st.columns([4,1,1,1])
+        cols = st.columns([4, 1, 1, 1])
         cols[0].write(question)
-        selected = None
         for i, option in enumerate(options):
-            if cols[i+1].radio("", options=[option], key=f"{key}_{option}"):
-                selected = features_mapping[option]
-        if selected:
-            responses[key] = selected
+            checked = st.session_state.get(f"{key}_{option}", False)
+            if cols[i+1].checkbox("", key=f"{key}_{option}", value=checked):
+                # ติ๊กตัวเลือกเดียวในแถว
+                st.session_state[key] = option
+                for other in options:
+                    if other != option:
+                        st.session_state[f"{key}_{other}"] = False
 
-    st.session_state.update(responses)
+    # ตรวจว่าตอบครบทุกข้อ
+    all_filled = all(st.session_state.get(key) for _, key in learning_factors)
 
-    all_filled = all(key in st.session_state for _, key in learning_factors)
     if all_filled and st.button('ถัดไป'):
+        # แปลงคำตอบเป็นตัวเลข
+        mapping = {'น้อย':3, 'ปานกลาง':4, 'มาก':5}
+        for _, key in learning_factors:
+            st.session_state[key] = mapping[st.session_state[key]]
         next_page()
     elif not all_filled:
         st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
