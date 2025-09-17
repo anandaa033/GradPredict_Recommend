@@ -128,7 +128,7 @@ elif st.session_state.page == 2:
 
     st.header('ปัจจัยส่งผลต่อการสำเร็จการศึกษาของนักศึกษาระดับบัณฑิตศึกษา (โปรดเลือกระดับความสำคัญที่ตรงกับความคิดเห็นของท่านมากที่สุดเพียงระดับเดียว)')
 
-    # รายการคำถาม (เหมือนเดิม)
+    # รายการคำถาม (คงเดิมของคุณ)
     learning_factors = [
         ('ความรู้ความเข้าใจแผนการเรียนที่กำหนดไว้ในหลักสูตร', 'knowledge_course'),
         ('ความรู้และความเข้าใจในการเรียนในแต่ละรายวิชา', 'knowledge_subject'),
@@ -170,45 +170,77 @@ elif st.session_state.page == 2:
         ('สภาพคล่องด้านการเงิน', 'financial_situation')
     ]
 
-    # เก็บไว้ใช้ใน page 3
     st.session_state.learning_factors = learning_factors
 
-    # เตรียม DataFrame สำหรับ data_editor พร้อมเติมค่าที่ตอบไว้ก่อนหน้า (ถ้ามี)
+    import pandas as pd
     df = pd.DataFrame({
         'ลำดับ': list(range(1, len(learning_factors) + 1)),
         'คำถาม': [q for q, _ in learning_factors],
         'คำตอบ': [inv_map.get(st.session_state.get(key)) for _, key in learning_factors]
     })
 
-    edited = st.data_editor(
-        df,
-        hide_index=True,
-        use_container_width=True,
-        num_rows="fixed",
-        column_config={
-            'คำตอบ': st.column_config.SelectboxColumn(
-                label='คำตอบ',
-                options=['น้อย', 'ปานกลาง', 'มาก'],
-                required=True
-            )
-        }
-    )
+    try:
+        # --- แบบ Radio ในตารางด้วย AgGrid ---
+        from st_aggrid import AgGrid, GridOptionsBuilder, JsCode, GridUpdateMode, DataReturnMode
 
-    # เพิ่ม CSS เน้นเส้นตาราง (grid) ให้ชัดขึ้น
-    st.markdown("""
-        <style>
-        [data-testid="stDataFrame"] table, 
-        [data-testid="stDataFrame"] thead th, 
-        [data-testid="stDataFrame"] tbody td {
-            border: 1px solid #d9d9d9 !important;
-            border-collapse: collapse !important;
+        radio_renderer = JsCode("""
+        class RadioRenderer {
+            init(params){
+                this.params = params;
+                this.eGui = document.createElement('div');
+                const opts = ['น้อย','ปานกลาง','มาก'];
+                const name = 'grp_' + params.node.id; // ให้ unique ต่อแถว
+                this.eGui.innerHTML = opts.map(o => `
+                  <label style="margin-right:10px;">
+                    <input type="radio" name="${name}" value="${o}" ${params.value === o ? 'checked' : ''}/>
+                    ${o}
+                  </label>`).join('');
+                this.eGui.addEventListener('change', (e) => {
+                    if (e.target && e.target.type === 'radio'){
+                        params.setValue(e.target.value); // อัปเดตค่าเซลล์
+                    }
+                });
+            }
+            getGui(){ return this.eGui; }
+            refresh(){ return false; }
         }
-        [data-testid="stDataFrame"] thead th {
-            font-weight: 600;
-            background: #fafafa;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+        """)
+
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_default_column(resizable=True, sortable=False)
+        gb.configure_column("ลำดับ", width=85, pinned="left")
+        gb.configure_column("คำถาม", autoHeight=True, wrapText=True, flex=3)
+        gb.configure_column("คำตอบ", editable=True, cellRenderer=radio_renderer, flex=2)
+        gridOptions = gb.build()
+
+        grid = AgGrid(
+            df,
+            gridOptions=gridOptions,
+            allow_unsafe_jscode=True,
+            update_mode=GridUpdateMode.VALUE_CHANGED,
+            data_return_mode=DataReturnMode.AS_INPUT,
+            fit_columns_on_grid_load=True,
+            height=min(620, 48*len(df)+140),
+            theme="streamlit",
+        )
+        edited = grid["data"]
+
+    except Exception:
+        # --- Fallback: ใช้ Selectbox ในตาราง (ไม่มี Radio) ---
+        st.info("หากต้องการปุ่ม ‘Radio’ ในตาราง โปรดติดตั้งแพ็กเกจ `streamlit-aggrid`. ขณะนี้แสดงเป็น Selectbox แทน")
+        edited = st.data_editor(
+            df,
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            column_config={
+                'คำตอบ': st.column_config.SelectboxColumn(
+                    label='คำตอบ',
+                    options=['น้อย', 'ปานกลาง', 'มาก'],
+                    required=True
+                )
+            }
+        )
 
     all_filled = edited['คำตอบ'].notna().all()
 
@@ -216,10 +248,10 @@ elif st.session_state.page == 2:
         if not all_filled:
             st.warning("กรุณาตอบทุกคำถามก่อนดำเนินการต่อ")
         else:
-            # บันทึกคำตอบกลับเข้า session_state ตามคีย์เดิม
             for (question, key), ans in zip(learning_factors, edited['คำตอบ'].tolist()):
                 st.session_state[key] = features_mapping[ans]
             next_page()
+
         
  
 
