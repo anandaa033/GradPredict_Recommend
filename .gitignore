@@ -1,0 +1,14 @@
+*.zip
+/test.py
+/linear_regression_model.pkl
+/stream.py
+/Medium-main
+/scikit-learn_linear_regression-main
+/display.py
+
+# Python / virtualenv
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
